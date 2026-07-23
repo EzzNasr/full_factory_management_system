@@ -2,12 +2,11 @@ import sqlite3
 import os
 import Tablefunctions
 
-# ── Path resolution ───────────────────────────────────────────────────────────
+# Path resolution
 # Tables.py lives in Logic/. MasterDB.db lives in main/.
 _LOGIC_DIR    = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_LOGIC_DIR)
 DB_PATH       = os.path.join(_PROJECT_ROOT, "main", "MasterDB.db")
-# ─────────────────────────────────────────────────────────────────────────────
 
 conn = sqlite3.connect(DB_PATH)
 c =  conn.cursor()
@@ -74,11 +73,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS Workers (
     Last_Cashout_Date TEXT NOT NULL   -- salary + adjustments accrue from this date
 )''')
 
-Tablefunctions.ViewDB()
-"""Tablefunctions.ViewTable(f"Products")
-Tablefunctions.ViewTable(f"Customers")
-Tablefunctions.ViewTable(f"Orders")
-Tablefunctions.ViewTable(f"OrderDetails")"""
+
 
 
 

@@ -2,7 +2,7 @@ import sqlite3
 import os
 from tabulate import tabulate
 
-
+#NOTE just internal functions for viewing and clearing tables, not intended for external use.
 
 # directories 
 _LOGIC_DIR    = os.path.dirname(os.path.abspath(__file__))
@@ -46,7 +46,7 @@ def ViewTable(table):
         # We pass the original 'table' string to SQLite since it already works
         c.execute(f"SELECT * FROM {table}")
     except sqlite3.OperationalError:
-        print(f"❌ Table '{table}' does not exist in the database at {DB_PATH}")
+        print(f" Table '{table}' does not exist in the database at {DB_PATH}")
         conn.close()
         return
 
