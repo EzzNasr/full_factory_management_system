@@ -108,10 +108,7 @@ temp/
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 
-# Manus version file (auto-generated)
-client/public/__manus__/version.json
-.project-config.json
-
+#personal files
 *.xlsx
 *.xlsx
 *.pdf
@@ -119,13 +116,10 @@ client/public/__manus__/version.json
 *.pyc
 invoices
 old_code
-MASTER_PROJECT_DOC.md
-MASTER_PROJECT_DOC.pdf
-PROGRESS_AND_FEASIBILITY.md
-
-instructions for backend and front end integration/
 logo.png
 signature.png
+planing the layout/
+misc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
