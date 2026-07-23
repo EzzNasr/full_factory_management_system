@@ -89,7 +89,7 @@ def migrate_all_invoices():
 
     #  2. Find invoice files
 
-    #same recursive search to find all invoices in the vacinty of the script 
+    #same recursive search to find all invoices in the vicinity of the script 
 
     excel_files = glob.glob('**/*.xlsx', recursive=True)
     # Exclude the catalog itself from invoice processing
@@ -122,7 +122,7 @@ def migrate_all_invoices():
         print(f"\n ERROR \n Database error: {e}")
         return
 
-    #  4. Process each invoice  ( sanatize , unift name , time stamp it )
+    #  4. Process each invoice  ( sanitize , unify name , time stamp it )
     for file_path in excel_files:
         base_name = os.path.basename(file_path)
         if base_name.startswith('~$'): # to ignore the files opened by excel at the moment or in general use by another app 
@@ -169,7 +169,7 @@ def migrate_all_invoices():
             qty_col = next((c for c in df.columns if 'عدد' in c), None)
             val_col = next((c for c in df.columns if 'قيمة' in c), None)
 
-            # a really dumb way to figure out what tier the bill used but can't think of anything better atm 
+            # a really dumb way to figure out what tier the bill used but can't think of anything better atm.
 
             retail_votes = wholesale_votes = 0
             if qty_col and val_col:
