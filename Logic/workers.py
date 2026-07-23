@@ -1,34 +1,30 @@
+"""
+Logic/workers.py
+
+Pure functions backing the /workers endpoints in fastapi_app.py.
+
+FIXME 
+DONE  
+
+balance calculation previously used
+`WHERE Date >= Last_Cashout_Date` to decide which ledger entries counted
+toward the owed balance. Since Date has no time component, entries logged
+the same day as a cashout could never be excluded , cashing out just reset
+Last_Cashout_Date to today, but today's entries were still >= today, so
+they kept re-counting forever.
+
+Replaced with an explicit `Paid` flag on WorkerLedger: cashout marks every
+currently-unpaid entry as paid, and the balance calc simply sums unpaid
+entries. Salary still accrues separately via Last_Cashout_Date proration.
+
+Schema is created by Tables.ensure_schema(conn), called once at app
+startup , see Tables.py. This module assumes Workers, WorkerLedger, and
+WorkerCashouts (including the Active and Paid columns) already exist by
+the time any function here runs.
+"""
 
 import datetime
 import sqlite3
-
-
-def _ensure_schema(c: sqlite3.Cursor):
-    c.execute("""CREATE TABLE IF NOT EXISTS WorkerLedger (
-        Ledger_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Worker_ID INTEGER NOT NULL,
-        Date TEXT NOT NULL,
-        Type TEXT NOT NULL,
-        Amount REAL NOT NULL,
-        Note TEXT,
-        FOREIGN KEY (Worker_ID) REFERENCES Workers(Worker_ID)
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS WorkerCashouts (
-        Cashout_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        Worker_ID INTEGER NOT NULL,
-        Date TEXT NOT NULL,
-        Amount_Paid REAL NOT NULL,
-        Note TEXT,
-        FOREIGN KEY (Worker_ID) REFERENCES Workers(Worker_ID)
-    )""")
-    try:
-        c.execute("ALTER TABLE Workers ADD COLUMN Active INTEGER DEFAULT 1")
-    except sqlite3.OperationalError:
-        pass
-    try:
-        c.execute("ALTER TABLE WorkerLedger ADD COLUMN Paid INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
 
 
 def _today() -> str:
@@ -42,7 +38,6 @@ def _prorated_salary(base_salary: float, last_cashout_date: str) -> float:
 
 
 def get_all_workers_pure(c: sqlite3.Cursor, active_only: bool = False):
-    _ensure_schema(c)
     if active_only:
         c.execute("SELECT Worker_ID, Name, Base_Salary, Active FROM Workers WHERE Active = 1 ORDER BY Name")
     else:
@@ -51,7 +46,6 @@ def get_all_workers_pure(c: sqlite3.Cursor, active_only: bool = False):
 
 
 def get_worker_balance_pure(c: sqlite3.Cursor, worker_id: int) -> float:
-    _ensure_schema(c)
     c.execute("SELECT Base_Salary, Last_Cashout_Date FROM Workers WHERE Worker_ID = ?", (worker_id,))
     row = c.fetchone()
     if not row:
@@ -70,7 +64,6 @@ def get_worker_balance_pure(c: sqlite3.Cursor, worker_id: int) -> float:
 
 
 def add_worker_pure(c: sqlite3.Cursor, name: str, base_salary: float) -> int:
-    _ensure_schema(c)
     if base_salary < 0:
         raise ValueError("Base salary cannot be negative.")
     c.execute(
@@ -81,7 +74,6 @@ def add_worker_pure(c: sqlite3.Cursor, name: str, base_salary: float) -> int:
 
 
 def update_worker_pure(c: sqlite3.Cursor, worker_id: int, **fields):
-    _ensure_schema(c)
     if not fields:
         return
     if "base_salary" in fields and fields["base_salary"] is not None and fields["base_salary"] < 0:
@@ -104,7 +96,6 @@ def update_worker_pure(c: sqlite3.Cursor, worker_id: int, **fields):
 
 def get_worker_ledger_pure(c: sqlite3.Cursor, worker_id: int):
     """Returns rows as (ledger_id, date, type, amount, note)."""
-    _ensure_schema(c)
     c.execute(
         "SELECT Ledger_ID, Date, Type, Amount, Note FROM WorkerLedger WHERE Worker_ID = ? ORDER BY Date DESC",
         (worker_id,),
@@ -114,7 +105,6 @@ def get_worker_ledger_pure(c: sqlite3.Cursor, worker_id: int):
 
 def add_ledger_entry_pure(c: sqlite3.Cursor, worker_id: int, type: str,
                            amount: float, note: str | None, date: str | None) -> int:
-    _ensure_schema(c)
     entry_date = date or _today()
     c.execute(
         "INSERT INTO WorkerLedger (Worker_ID, Date, Type, Amount, Note, Paid) VALUES (?, ?, ?, ?, ?, 0)",
@@ -126,7 +116,6 @@ def add_ledger_entry_pure(c: sqlite3.Cursor, worker_id: int, type: str,
 def cashout_worker_pure(c: sqlite3.Cursor, worker_id: int, note: str | None) -> float:
     """Pays out the current balance, marks all unpaid ledger entries as paid,
     logs the cashout, and resets the salary-accrual clock."""
-    _ensure_schema(c)
     amount_paid = get_worker_balance_pure(c, worker_id)
     today = _today()
 
@@ -142,7 +131,6 @@ def cashout_worker_pure(c: sqlite3.Cursor, worker_id: int, note: str | None) -> 
 
 def get_all_cashouts_pure(c: sqlite3.Cursor, worker_id: int):
     """Returns rows as (cashout_id, worker_id, date, amount_paid, note)."""
-    _ensure_schema(c)
     c.execute(
         "SELECT Cashout_ID, Worker_ID, Date, Amount_Paid, Note FROM WorkerCashouts WHERE Worker_ID = ? ORDER BY Date DESC",
         (worker_id,),
@@ -151,11 +139,10 @@ def get_all_cashouts_pure(c: sqlite3.Cursor, worker_id: int):
 
 
 def delete_worker_pure(c: sqlite3.Cursor, worker_id: int):
-    """Hard-delete, but only if the worker has no payroll history at all —
+    """Hard-delete, but only if the worker has no payroll history at all 
     otherwise this would either orphan or silently erase ledger/cashout
-    records. Use the Active flag (update_worker_pure) to remove a worker
+    records. so we Use the flag (update_worker_pure) to remove a worker
     from active lists while preserving their history instead."""
-    _ensure_schema(c)
     c.execute("SELECT COUNT(*) FROM WorkerLedger WHERE Worker_ID = ?", (worker_id,))
     ledger_count = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM WorkerCashouts WHERE Worker_ID = ?", (worker_id,))
