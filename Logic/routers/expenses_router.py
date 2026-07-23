@@ -10,7 +10,7 @@ from Logic.schemas import ExpenseCreate
 router = APIRouter()
 
 
-# ── Expense endpoints ─────────────────────────────────────────────────────────
+#  Expense endpoints 
 
 @router.get("/expenses")
 async def get_expenses(month: Optional[str] = None, db: sqlite3.Connection = Depends(get_db)):
